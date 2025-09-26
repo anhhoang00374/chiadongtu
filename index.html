@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>App luyện chia động từ N5</title>
+    <style>
+        :root{--bg:#0f172a;--card:#111827cc;--acc:#6366f1;--acc2:#22d3ee;--text:#e5e7eb;--muted:#9ca3af;--success:#10b981;--danger:#ef4444}
+        *{box-sizing:border-box}html,body{height:100%}body{margin:0;display:grid;place-items:center;min-height:100vh;background:linear-gradient(180deg,#0b1020,#0f172a);color:var(--text);font-family:ui-sans-serif,system-ui;padding:20px}
+        .app{width:min(640px,100%);background:#0b1224cc;border:1px solid #33415580;border-radius:20px;padding:20px;box-shadow:0 20px 60px #0008}
+        header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+        .brand{display:flex;align-items:center;gap:12px}
+        .logo{width:42px;height:42px;border-radius:12px;background:conic-gradient(from 180deg,var(--acc),var(--acc2))}
+        h1{font-size:20px;margin:0}.muted{color:var(--muted)}
+        .card{background:var(--card);border:1px solid #33415580;border-radius:16px;padding:16px;margin-top:12px}
+        input[type=text],.text-input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #334155;background:#0b1224;color:var(--text);font-size:16px}
+        .btn{padding:10px 14px;border-radius:12px;border:1px solid #334155;background:#141a2f;color:var(--text);cursor:pointer;font-weight:600}
+        .btn.primary{background:linear-gradient(90deg,var(--acc),var(--acc2));color:#0b1020;border:none}
+        .choice{padding:12px 14px;border-radius:12px;border:2px solid #94a3b8;background:#f1f5f9;color:#0b1020;font-weight:700;text-align:center;cursor:pointer}
+        .choice:hover{background:#e2e8f0}
+        .timer{height:6px;border-radius:999px;background:#1f2937;overflow:hidden}
+        .timer>div{height:100%;background:linear-gradient(90deg,var(--acc2),var(--acc));width:0%}
+        .verb{font-size:26px;font-weight:800}
+        .feedback{padding:10px 12px;border-radius:12px;margin-top:10px;font-weight:700}
+        .feedback.ok{background:#05291a;color:#34d399}.feedback.no{background:#2a0b0b;color:#fca5a5}
+        .hidden{display:none!important}
+        .my-2{margin: 20px 0}
+        .mx-2{margin: 20px 20px}
+    </style>
+</head>
+<body>
+<div class="app">
+    <header>
+        <div class="brand"><div class="logo"></div><h1>App luyện chia động từ N5</h1></div>
+        <div id="userBadge" class="muted hidden"></div>
+    </header>
+
+    <!-- B1: Nhập tên -->
+    <div class="card" id="introCard">
+        <label for="name" class="my-2">Nhập tên của bạn</label>
+        <input id="name" class="my-2" type="text" placeholder="Ví dụ: Minh Anh">
+        <button class="btn primary my-2" id="startBtn">Bắt đầu</button>
+        <div class="muted">Mỗi câu có <b>10 giây</b>. Hãy nhập tên để bắt đầu.</div>
+    </div>
+
+    <!-- B2: Chọn bài -->
+    <div class="card hidden" id="modesCard">
+        <div class="muted my-2">Chọn dạng bài (mỗi dạng độc lập):</div>
+        <button class="btn mx-2" data-mode="group">Chia nhóm động từ</button>
+        <button class="btn mx-2" data-mode="potential">Thể khả năng</button>
+        <button class="btn mx-2" data-mode="te">Thể て</button>
+        <button class="btn mx-2" data-mode="ta">Thể た</button>
+        <button class="btn mx-2" data-mode="nai">Thể ない</button>
+        <button class="btn mx-2" data-mode="ru">辞書形（る）</button>
+    </div>
+
+    <!-- B3: Làm bài -->
+    <div class="card hidden" id="quizCard">
+        <div class="timer"><div id="timerBar"></div></div>
+        <div class="muted" id="modeChip">—</div>
+        <div id="progressChip" class="muted my-2">0/0</div>
+        <div id="scoreChip" class="muted my-2">Điểm: 0</div>
+        <button class="btn" id="backToModesBtn">← Trở về</button>
+
+        <div class="verb my-2" id="qVerb">—</div>
+        <div class="muted my-2" id="qMeaning">—</div>
+        <div class="muted my-2" id="qPrompt">—</div>
+
+        <div id="groupChoices" class="hidden">
+            <button class="choice mx-2" data-group="1">Nhóm 1</button>
+            <button class="choice mx-2" data-group="2">Nhóm 2</button>
+            <button class="choice mx-2" data-group="3">Nhóm 3</button>
+        </div>
+
+        <div id="textAnswer" class="hidden">
+            <input id="answerInput" class="text-input" type="text" placeholder="Nhập đáp án tại đây" autocomplete="off">
+            <button class="btn my-2" id="submitBtn">Trả lời (Enter)</button>
+        </div>
+
+        <div id="feedback" class="feedback hidden"></div>
+    </div>
+
+    <!-- Kết quả -->
+    <div class="card hidden" id="resultCard">
+        <div id="resultText"></div>
+        <div id="resultDetail" class="muted"></div>
+        <button class="btn my-2" id="redoWrongBtn">Làm lại những câu sai</button>
+        <button class="btn" id="backHomeBtn">Về trang chính</button>
+    </div>
+</div>
+
+
+<script>
+    // Bản ổn trước khi thêm 100 động từ
+    const VERBS=[
+        {"hiragana": "かきます", "meaning": "viết", "group": 1, "potential": "かけます", "te": "かいて", "ta": "かいた", "nai": "かかない", "ru": "かく"},
+        {"hiragana": "ひきます", "meaning": "kéo; đánh (đàn)", "group": 1, "potential": "ひけます", "te": "ひいて", "ta": "ひいた", "nai": "ひかない", "ru": "ひく"},
+        {"hiragana": "すみます", "meaning": "sống/cư trú", "group": 1, "potential": "すめます", "te": "すんで", "ta": "すんだ", "nai": "すまない", "ru": "すむ"},
+        {"hiragana": "みつけます", "meaning": "tìm thấy", "group": 2, "potential": "みつけられます", "te": "みつけて", "ta": "みつけた", "nai": "みつけない", "ru": "みつける"},
+        {"hiragana": "たべます", "meaning": "ăn", "group": 2, "potential": "たべられます", "te": "たべて", "ta": "たべた", "nai": "たべない", "ru": "たべる"},
+        {"hiragana": "いいます", "meaning": "nói; bảo", "group": 1, "potential": "いえます", "te": "いって", "ta": "いった", "nai": "いわない", "ru": "いう"},
+        {"hiragana": "りょうりします", "meaning": "nấu ăn", "group": 3, "potential": "りょうりできます", "te": "りょうりして", "ta": "りょうりした", "nai": "りょうりしない", "ru": "りょうりする"},
+        {"hiragana": "おもいます", "meaning": "nghĩ", "group": 1, "potential": "おもえます", "te": "おもって", "ta": "おもった", "nai": "おもわない", "ru": "おもう"},
+        {"hiragana": "たずねます", "meaning": "hỏi/thăm", "group": 2, "potential": "たずねられます", "te": "たずねて", "ta": "たずねた", "nai": "たずねない", "ru": "たずねる"},
+        {"hiragana": "しらべます", "meaning": "tra cứu/kiểm tra", "group": 2, "potential": "しらべられます", "te": "しらべて", "ta": "しらべた", "nai": "しらべない", "ru": "しらべる"},
+        {"hiragana": "さがします", "meaning": "tìm kiếm", "group": 1, "potential": "さがせます", "te": "さがして", "ta": "さがした", "nai": "さがさない", "ru": "さがす"},
+        {"hiragana": "かけます", "meaning": "treo; gọi (điện thoại)", "group": 2, "potential": "かけられます", "te": "かけて", "ta": "かけた", "nai": "かけない", "ru": "かける"},
+        {"hiragana": "でます", "meaning": "rời/ra", "group": 2, "potential": "でられます", "te": "でて", "ta": "でた", "nai": "でない", "ru": "でる"},
+        {"hiragana": "つとめます", "meaning": "làm việc cho", "group": 2, "potential": "つとめられます", "te": "つとめて", "ta": "つとめた", "nai": "つとめない", "ru": "つとめる"},
+        {"hiragana": "あげます", "meaning": "cho/tặng", "group": 2, "potential": "あげられます", "te": "あげて", "ta": "あげた", "nai": "あげない", "ru": "あげる"},
+        {"hiragana": "とまります", "meaning": "dừng (tự động từ)", "group": 1, "potential": "とまれます", "te": "とまって", "ta": "とまった", "nai": "とまらない", "ru": "とまる"},
+        {"hiragana": "うります", "meaning": "bán", "group": 1, "potential": "うれます", "te": "うって", "ta": "うった", "nai": "うらない", "ru": "うる"},
+        {"hiragana": "しつもんします", "meaning": "hỏi (đặt câu hỏi)", "group": 3, "potential": "しつもんできます", "te": "しつもんして", "ta": "しつもんした", "nai": "しつもんしない", "ru": "しつもんする"},
+        {"hiragana": "せんたくします", "meaning": "giặt giũ", "group": 3, "potential": "せんたくできます", "te": "せんたくして", "ta": "せんたくした", "nai": "せんたくしない", "ru": "せんたくする"},
+        {"hiragana": "しにます", "meaning": "chết", "group": 1, "potential": "しねます", "te": "しんで", "ta": "しんだ", "nai": "しなない", "ru": "しぬ"},
+        {"hiragana": "とります", "meaning": "lấy/chụp (ảnh)", "group": 1, "potential": "とれます", "te": "とって", "ta": "とった", "nai": "とらない", "ru": "とる"},
+        {"hiragana": "しょうかいします", "meaning": "giới thiệu", "group": 3, "potential": "しょうかいできます", "te": "しょうかいして", "ta": "しょうかいした", "nai": "しょうかいしない", "ru": "しょうかいする"},
+        {"hiragana": "ちゅうもんします", "meaning": "gọi món/đặt hàng", "group": 3, "potential": "ちゅうもんできます", "te": "ちゅうもんして", "ta": "ちゅうもんした", "nai": "ちゅうもんしない", "ru": "ちゅうもんする"},
+        {"hiragana": "うんてんします", "meaning": "lái xe", "group": 3, "potential": "うんてんできます", "te": "うんてんして", "ta": "うんてんした", "nai": "うんてんしない", "ru": "うんてんする"},
+        {"hiragana": "やめます", "meaning": "bỏ/dừng", "group": 2, "potential": "やめられます", "te": "やめて", "ta": "やめた", "nai": "やめない", "ru": "やめる"},
+        {"hiragana": "つくります", "meaning": "làm/chế tạo", "group": 1, "potential": "つくれます", "te": "つくって", "ta": "つくった", "nai": "つくらない", "ru": "つくる"},
+        {"hiragana": "わすれます", "meaning": "quên", "group": 2, "potential": "わすれられます", "te": "わすれて", "ta": "わすれた", "nai": "わすれない", "ru": "わすれる"},
+        {"hiragana": "あつめます", "meaning": "sưu tầm/tập hợp", "group": 2, "potential": "あつめられます", "te": "あつめて", "ta": "あつめた", "nai": "あつめない", "ru": "あつめる"},
+        {"hiragana": "ならびます", "meaning": "xếp hàng", "group": 1, "potential": "ならべます", "te": "ならんで", "ta": "ならんだ", "nai": "ならばない", "ru": "ならぶ"},
+        {"hiragana": "あいます", "meaning": "gặp", "group": 1, "potential": "あえます", "te": "あって", "ta": "あった", "nai": "あわない", "ru": "あう"},
+        {"hiragana": "あらいます", "meaning": "rửa", "group": 1, "potential": "あらえます", "te": "あらって", "ta": "あらった", "nai": "あらわない", "ru": "あらう"},
+        {"hiragana": "おしえます", "meaning": "dạy/bảo", "group": 2, "potential": "おしえられます", "te": "おしえて", "ta": "おしえた", "nai": "おしえない", "ru": "おしえる"},
+        {"hiragana": "けします", "meaning": "tắt/xóa", "group": 1, "potential": "けせます", "te": "けして", "ta": "けした", "nai": "けさない", "ru": "けす"},
+        {"hiragana": "きます", "meaning": "mặc (áo)", "group": 2, "potential": "きられます", "te": "きて", "ta": "きた", "nai": "きない", "ru": "きる"},
+        {"hiragana": "こたえます", "meaning": "trả lời", "group": 2, "potential": "こたえられます", "te": "こたえて", "ta": "こたえた", "nai": "こたえない", "ru": "こたえる"},
+        {"hiragana": "きます", "meaning": "đến", "group": 3, "potential": "こられます", "te": "きて", "ta": "きた", "nai": "こない", "ru": "くる"},
+        {"hiragana": "あけます", "meaning": "mở (tha động từ)", "group": 2, "potential": "あけられます", "te": "あけて", "ta": "あけた", "nai": "あけない", "ru": "あける"},
+        {"hiragana": "はらいます", "meaning": "trả (tiền)", "group": 1, "potential": "はらえます", "te": "はらって", "ta": "はらった", "nai": "はらわない", "ru": "はらう"},
+        {"hiragana": "はじめます", "meaning": "bắt đầu (tha động từ)", "group": 2, "potential": "はじめられます", "te": "はじめて", "ta": "はじめた", "nai": "はじめない", "ru": "はじめる"},
+        {"hiragana": "ならいます", "meaning": "học (từ ai đó)", "group": 1, "potential": "ならえます", "te": "ならって", "ta": "ならった", "nai": "ならわない", "ru": "ならう"},
+        {"hiragana": "さんぽします", "meaning": "đi dạo", "group": 3, "potential": "さんぽできます", "te": "さんぽして", "ta": "さんぽした", "nai": "さんぽしない", "ru": "さんぽする"},
+        {"hiragana": "おくれます", "meaning": "trễ/muộn", "group": 2, "potential": "おくれられます", "te": "おくれて", "ta": "おくれた", "nai": "おくれない", "ru": "おくれる"},
+        {"hiragana": "せつめいします", "meaning": "giải thích", "group": 3, "potential": "せつめいできます", "te": "せつめいして", "ta": "せつめいした", "nai": "せつめいしない", "ru": "せつめいする"},
+        {"hiragana": "あそびます", "meaning": "chơi", "group": 1, "potential": "あそべます", "te": "あそんで", "ta": "あそんだ", "nai": "あそばない", "ru": "あそぶ"},
+        {"hiragana": "なります", "meaning": "trở thành", "group": 1, "potential": "なれます", "te": "なって", "ta": "なった", "nai": "ならない", "ru": "なる"},
+        {"hiragana": "はじまります", "meaning": "bắt đầu (tự động từ)", "group": 1, "potential": "はじまれます", "te": "はじまって", "ta": "はじまった", "nai": "はじまらない", "ru": "はじまる"},
+        {"hiragana": "かえします", "meaning": "trả lại", "group": 1, "potential": "かえせます", "te": "かえして", "ta": "かえした", "nai": "かえさない", "ru": "かえす"},
+        {"hiragana": "もちます", "meaning": "cầm/mang", "group": 1, "potential": "もてます", "te": "もって", "ta": "もった", "nai": "もたない", "ru": "もつ"},
+        {"hiragana": "おきます", "meaning": "thức dậy", "group": 2, "potential": "おきられます", "te": "おきて", "ta": "おきた", "nai": "おきない", "ru": "おきる"},
+        {"hiragana": "たちます", "meaning": "đứng", "group": 1, "potential": "たてます", "te": "たって", "ta": "たった", "nai": "たたない", "ru": "たつ"},
+        {"hiragana": "りょこうします", "meaning": "du lịch", "group": 3, "potential": "りょこうできます", "te": "りょこうして", "ta": "りょこうした", "nai": "りょこうしない", "ru": "りょこうする"},
+        {"hiragana": "しめます", "meaning": "đóng (tha động từ)", "group": 2, "potential": "しめられます", "te": "しめて", "ta": "しめた", "nai": "しめない", "ru": "しめる"},
+        {"hiragana": "くれます", "meaning": "cho (tôi/người mình)", "group": 2, "potential": "くれられます", "te": "くれて", "ta": "くれた", "nai": "くれない", "ru": "くれる"},
+        {"hiragana": "けっこんします", "meaning": "kết hôn", "group": 3, "potential": "けっこんできます", "te": "けっこんして", "ta": "けっこんした", "nai": "けっこんしない", "ru": "けっこんする"},
+        {"hiragana": "でかけます", "meaning": "đi ra ngoài", "group": 2, "potential": "でかけられます", "te": "でかけて", "ta": "でかけた", "nai": "でかけない", "ru": "でかける"},
+        {"hiragana": "れんしゅうします", "meaning": "luyện tập", "group": 3, "potential": "れんしゅうできます", "te": "れんしゅうして", "ta": "れんしゅうした", "nai": "れんしゅうしない", "ru": "れんしゅうする"},
+        {"hiragana": "とめます", "meaning": "dừng (tha động từ)", "group": 2, "potential": "とめられます", "te": "とめて", "ta": "とめた", "nai": "とめない", "ru": "とめる"},
+        {"hiragana": "そうじします", "meaning": "dọn dẹp", "group": 3, "potential": "そうじできます", "te": "そうじして", "ta": "そうじした", "nai": "そうじしない", "ru": "そうじする"},
+        {"hiragana": "おきます", "meaning": "đặt/để", "group": 1, "potential": "おけます", "te": "おいて", "ta": "おいた", "nai": "おかない", "ru": "おく"},
+        {"hiragana": "かいます", "meaning": "mua", "group": 1, "potential": "かえます", "te": "かって", "ta": "かった", "nai": "かわない", "ru": "かう"},
+        {"hiragana": "すてます", "meaning": "vứt", "group": 2, "potential": "すてられます", "te": "すてて", "ta": "すてた", "nai": "すてない", "ru": "すてる"},
+        {"hiragana": "まちます", "meaning": "chờ/đợi", "group": 1, "potential": "まてます", "te": "まって", "ta": "まった", "nai": "またない", "ru": "まつ"},
+        {"hiragana": "かります", "meaning": "mượn", "group": 2, "potential": "かりられます", "te": "かりて", "ta": "かりた", "nai": "かりない", "ru": "かりる"},
+        {"hiragana": "うんどうします", "meaning": "tập thể dục", "group": 3, "potential": "うんどうできます", "te": "うんどうして", "ta": "うんどうした", "nai": "うんどうしない", "ru": "うんどうする"},
+        {"hiragana": "いれます", "meaning": "bỏ vào/cho vào", "group": 2, "potential": "いれられます", "te": "いれて", "ta": "いれた", "nai": "いれない", "ru": "いれる"},
+        {"hiragana": "はいります", "meaning": "vào/đi vào", "group": 1, "potential": "はいれます", "te": "はいって", "ta": "はいった", "nai": "はいらない", "ru": "はいる"},
+        {"hiragana": "みます", "meaning": "nhìn/xem", "group": 2, "potential": "みられます", "te": "みて", "ta": "みた", "nai": "みない", "ru": "みる"},
+        {"hiragana": "あびます", "meaning": "tắm (vòi sen)", "group": 2, "potential": "あびられます", "te": "あびて", "ta": "あびた", "nai": "あびない", "ru": "あびる"},
+        {"hiragana": "はしります", "meaning": "chạy", "group": 1, "potential": "はしれます", "te": "はしって", "ta": "はしった", "nai": "はしらない", "ru": "はしる"},
+        {"hiragana": "みせます", "meaning": "cho xem", "group": 2, "potential": "みせられます", "te": "みせて", "ta": "みせた", "nai": "みせない", "ru": "みせる"},
+        {"hiragana": "だします", "meaning": "lấy ra/nộp (bài)", "group": 1, "potential": "だせます", "te": "だして", "ta": "だした", "nai": "ださない", "ru": "だす"},
+        {"hiragana": "おります", "meaning": "xuống (xe/tàu)", "group": 2, "potential": "おりられます", "te": "おりて", "ta": "おりた", "nai": "おりない", "ru": "おりる"},
+        {"hiragana": "ならべます", "meaning": "sắp xếp/xếp hàng", "group": 2, "potential": "ならべられます", "te": "ならべて", "ta": "ならべた", "nai": "ならべない", "ru": "ならべる"},
+        {"hiragana": "おわります", "meaning": "kết thúc (tự động từ)", "group": 1, "potential": "おわれます", "te": "おわって", "ta": "おわった", "nai": "おわらない", "ru": "おわる"},
+        {"hiragana": "しんぱいします", "meaning": "lo lắng", "group": 3, "potential": "しんぱいできます", "te": "しんぱいして", "ta": "しんぱいした", "nai": "しんぱいしない", "ru": "しんぱいする"},
+        {"hiragana": "でんわします", "meaning": "gọi điện", "group": 3, "potential": "でんわできます", "te": "でんわして", "ta": "でんわした", "nai": "でんわしない", "ru": "でんわする"},
+        {"hiragana": "つかいます", "meaning": "dùng/sử dụng", "group": 1, "potential": "つかえます", "te": "つかって", "ta": "つかった", "nai": "つかわない", "ru": "つかう"},
+        {"hiragana": "わかります", "meaning": "hiểu", "group": 1, "potential": "わかれます", "te": "わかって", "ta": "わかった", "nai": "わからない", "ru": "わかる"},
+        {"hiragana": "よやくします", "meaning": "đặt chỗ", "group": 3, "potential": "よやくできます", "te": "よやくして", "ta": "よやくした", "nai": "よやくしない", "ru": "よやくする"},
+        {"hiragana": "うたいます", "meaning": "hát", "group": 1, "potential": "うたえます", "te": "うたって", "ta": "うたった", "nai": "うたわない", "ru": "うたう"},
+        {"hiragana": "のります", "meaning": "lên (xe/tàu)", "group": 1, "potential": "のれます", "te": "のって", "ta": "のった", "nai": "のらない", "ru": "のる"},
+        {"hiragana": "ねます", "meaning": "ngủ", "group": 2, "potential": "ねられます", "te": "ねて", "ta": "ねた", "nai": "ねない", "ru": "ねる"},
+        {"hiragana": "しまります", "meaning": "đóng (tự động từ)", "group": 1, "potential": "しまれます", "te": "しまって", "ta": "しまった", "nai": "しまらない", "ru": "しまる"},
+        {"hiragana": "さきます", "meaning": "nở (hoa)", "group": 1, "potential": "さけます", "te": "さいて", "ta": "さいた", "nai": "さかない", "ru": "さく"},
+        {"hiragana": "きめます", "meaning": "quyết định", "group": 2, "potential": "きめられます", "te": "きめて", "ta": "きめた", "nai": "きめない", "ru": "きめる"},
+        {"hiragana": "おぼえます", "meaning": "ghi nhớ/học thuộc", "group": 2, "potential": "おぼえられます", "te": "おぼえて", "ta": "おぼえた", "nai": "おぼえない", "ru": "おぼえる"},
+        {"hiragana": "します", "meaning": "làm", "group": 3, "potential": "できます", "te": "して", "ta": "した", "nai": "しない", "ru": "する"},
+        {"hiragana": "すわります", "meaning": "ngồi", "group": 1, "potential": "すわれます", "te": "すわって", "ta": "すわった", "nai": "すわらない", "ru": "すわる"},
+        {"hiragana": "およぎます", "meaning": "bơi", "group": 1, "potential": "およげます", "te": "およいで", "ta": "およいだ", "nai": "およがない", "ru": "およぐ"},
+        {"hiragana": "つけます", "meaning": "bật/gắn", "group": 2, "potential": "つけられます", "te": "つけて", "ta": "つけた", "nai": "つけない", "ru": "つける"},
+        {"hiragana": "ききます", "meaning": "nghe; hỏi", "group": 1, "potential": "きけます", "te": "きいて", "ta": "きいた", "nai": "きかない", "ru": "きく"},
+        {"hiragana": "よびます", "meaning": "gọi (ai đó)", "group": 1, "potential": "よべます", "te": "よんで", "ta": "よんだ", "nai": "よばない", "ru": "よぶ"},
+        {"hiragana": "かいものします", "meaning": "mua sắm", "group": 3, "potential": "かいものできます", "te": "かいものして", "ta": "かいものした", "nai": "かいものしない", "ru": "かいものする"},
+        {"hiragana": "うまれます", "meaning": "sinh ra", "group": 2, "potential": "うまれられます", "te": "うまれて", "ta": "うまれた", "nai": "うまれない", "ru": "うまれる"},
+        {"hiragana": "あるきます", "meaning": "đi bộ", "group": 1, "potential": "あるけます", "te": "あるいて", "ta": "あるいた", "nai": "あるかない", "ru": "あるく"},
+        {"hiragana": "いきます", "meaning": "đi", "group": 1, "potential": "いけます", "te": "いって", "ta": "いった", "nai": "いかない", "ru": "いく"},
+        {"hiragana": "べんきょうします", "meaning": "học", "group": 3, "potential": "べんきょうできます", "te": "べんきょうして", "ta": "べんきょうした", "nai": "べんきょうしない", "ru": "べんきょうする"},
+        {"hiragana": "よみます", "meaning": "đọc", "group": 1, "potential": "よめます", "te": "よんで", "ta": "よんだ", "nai": "よまない", "ru": "よむ"},
+        {"hiragana": "はなします", "meaning": "nói/chuyện", "group": 1, "potential": "はなせます", "te": "はなして", "ta": "はなした", "nai": "はなさない", "ru": "はなす"},
+        {"hiragana": "のみます", "meaning": "uống", "group": 1, "potential": "のめます", "te": "のんで", "ta": "のんだ", "nai": "のまない", "ru": "のむ"}
+    ];
+
+    const $=s=>document.querySelector(s);
+    const shuffle=arr=>arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+
+    const state={name:'',mode:null,sessions:{},quiz:{list:[],idx:0,timerId:null,answered:false}};
+
+    function toMasu(v){
+        return v.hiragana;
+        // const w=v.hiragana;
+        // if(v.group===3){if(w==='する')return'します';if(w==='くる')return'きます';if(w.endsWith('する'))return w.slice(0,-2)+'します';return w;}
+        // if(v.group===2){return w.endsWith('る')?w.slice(0,-1)+'ます':w+'ます';}
+        // const map={'う':'い','く':'き','ぐ':'ぎ','す':'し','つ':'ち','る':'り','む':'み','ぶ':'び','ぬ':'に'};
+        // return w.slice(0,-1)+(map[w.slice(-1)]||'')+'ます';
+    }
+
+    const nameInput=$('#name'),startBtn=$('#startBtn'),introCard=$('#introCard'),modesCard=$('#modesCard'),userBadge=$('#userBadge');
+    const quizCard=$('#quizCard'),modeChip=$('#modeChip'),progressChip=$('#progressChip'),scoreChip=$('#scoreChip'),qVerb=$('#qVerb'),qMeaning=$('#qMeaning'),qPrompt=$('#qPrompt'),groupChoices=$('#groupChoices'),textAnswer=$('#textAnswer'),answerInput=$('#answerInput'),submitBtn=$('#submitBtn'),feedback=$('#feedback'),timerBar=$('#timerBar');
+    const resultCard=$('#resultCard'),resultText=$('#resultText'),resultDetail=$('#resultDetail'),redoWrongBtn=$('#redoWrongBtn'),backHomeBtn=$('#backHomeBtn'),backToModesBtn=$('#backToModesBtn');
+
+    startBtn.onclick=()=>{
+        const n=nameInput.value.trim();
+        if(!n){alert('Vui lòng nhập tên');return;}
+        state.name=n;userBadge.textContent='Xin chào, '+n;userBadge.classList.remove('hidden');introCard.classList.add('hidden');modesCard.classList.remove('hidden');
+    };
+
+    document.querySelectorAll('#modesCard .btn').forEach(b=>b.onclick=()=>startMode(b.dataset.mode));
+
+    function startMode(mode){
+        state.mode=mode;
+        state.sessions[mode]={score:0,total:0,wrong:[]};
+        state.quiz.list=shuffle(VERBS);
+        state.quiz.idx=0;
+        showQuizUI();
+        renderQuestion();
+    }
+
+    function showQuizUI(){
+        quizCard.classList.remove('hidden');modesCard.classList.add('hidden');resultCard.classList.add('hidden');
+        const modeName={group:'Bài: Chia nhóm',potential:'Bài: Thể khả năng',te:'Bài: Thể て',ta:'Bài: Thể た',nai:'Bài: Thể ない',ru:'Bài: 辞書形（る）'}[state.mode];
+        modeChip.textContent=modeName;
+        progressChip.textContent=(state.quiz.idx+1)+'/'+state.quiz.list.length;
+        scoreChip.textContent='Điểm: 0';
+        if(state.mode==='group'){groupChoices.classList.remove('hidden');textAnswer.classList.add('hidden');}
+        else{groupChoices.classList.add('hidden');textAnswer.classList.remove('hidden');answerInput.value='';}
+    }
+
+    function startTimer(){
+        clearInterval(state.quiz.timerId);
+        timerBar.style.width='100%';
+        const start=Date.now();
+        state.quiz.timerId=setInterval(()=>{
+            const remain=Math.max(0,10-(Date.now()-start)/1000);
+            timerBar.style.width=(remain/10*100)+'%';
+            if(remain<=0){clearInterval(state.quiz.timerId);timeUp();}
+        },50);
+    }
+
+    function timeUp(){
+        if(state.quiz.answered) return;
+        const sess=state.sessions[state.mode];sess.total++;sess.wrong.push(state.quiz.list[state.quiz.idx]);
+        showFeedback(false,'Hết giờ!');
+        setTimeout(()=>{state.quiz.idx++;nextQuestion();},700);
+        answerInput.value='';
+    }
+
+    function renderQuestion(){
+        const v=state.quiz.list[state.quiz.idx];if(!v){endQuiz();return;}
+        qVerb.textContent=toMasu(v);
+        qMeaning.textContent=v.meaning;
+        qPrompt.textContent=(state.mode==='group')?'Chọn nhóm đúng':`Nhập đáp án (${state.mode})`;
+        progressChip.textContent=(state.quiz.idx+1)+'/'+state.quiz.list.length;
+        scoreChip.textContent='Điểm: '+state.sessions[state.mode].score;
+        state.quiz.answered=false;
+        startTimer();
+    }
+
+    function checkAnswer(user){
+        if(state.quiz.answered) return;
+        const v=state.quiz.list[state.quiz.idx];
+        let ok=false, correct='';
+        if(state.mode==='group'){ok=Number(user)===v.group;correct='Nhóm đúng: '+v.group;}
+        else{ok=user.trim()===v[state.mode];correct='Đáp án: '+v[state.mode];}
+        const sess=state.sessions[state.mode];
+        sess.total++;
+        if(ok) sess.score++; else sess.wrong.push(v);
+        showFeedback(ok,ok?'Chính xác!':correct);
+        setTimeout(()=>{state.quiz.idx++;nextQuestion();},700);
+        answerInput.value='';
+    }
+
+    function showFeedback(ok,msg){
+        feedback.textContent=msg;feedback.className='feedback '+(ok?'ok':'no');feedback.classList.remove('hidden');
+        state.quiz.answered=true;clearInterval(state.quiz.timerId);
+    }
+
+    function nextQuestion(){
+        if(state.quiz.idx>=state.quiz.list.length){endQuiz();return;}
+        renderQuestion();
+    }
+
+    document.querySelectorAll('#groupChoices .choice').forEach(btn=>btn.onclick=()=>checkAnswer(btn.dataset.group));
+    submitBtn.onclick=()=>checkAnswer(answerInput.value);
+    answerInput.addEventListener('keydown',e=>{if(e.key==='Enter')checkAnswer(answerInput.value);});
+
+    function endQuiz(){
+        clearInterval(state.quiz.timerId);
+        quizCard.classList.add('hidden');resultCard.classList.remove('hidden');
+        const sess=state.sessions[state.mode];
+        if(sess.wrong.length===0){resultText.textContent=state.name+' ơi, bạn đã hoàn thành xuất sắc!';resultDetail.textContent='';redoWrongBtn.classList.add('hidden');}
+        else{resultText.textContent='Kết thúc bài';resultDetail.textContent='Ban vẫn còn sai: '+sess.wrong.length+'câu';redoWrongBtn.classList.remove('hidden');}
+    }
+
+    redoWrongBtn.onclick=()=>{
+        const sess=state.sessions[state.mode];
+        state.quiz.list=shuffle(sess.wrong);sess.wrong=[];state.quiz.idx=0;
+        showQuizUI();renderQuestion();
+        feedback.classList.add('hidden');
+    };
+
+    backHomeBtn.onclick=()=>{
+        resultCard.classList.add('hidden');modesCard.classList.remove('hidden');
+        feedback.classList.add('hidden');
+
+    };
+    backToModesBtn.onclick=()=>{quizCard.classList.add('hidden');modesCard.classList.remove('hidden');};
+</script>
+</body>
+</html>
