@@ -24,8 +24,8 @@
         .feedback{padding:10px 12px;border-radius:12px;margin-top:10px;font-weight:700}
         .feedback.ok{background:#05291a;color:#34d399}.feedback.no{background:#2a0b0b;color:#fca5a5}
         .hidden{display:none!important}
-        .my-2{margin: 20px 0}
-        .mx-2{margin: 20px 20px}
+        .my-2{margin: 10px 0}
+        .mx-2{margin: 10px 10px}
     </style>
 </head>
 <body>
@@ -38,14 +38,14 @@
     <!-- B1: Nhập tên -->
     <div class="card" id="introCard">
         <label for="name" class="my-2">Nhập tên của bạn</label>
-        <input id="name" class="my-2" type="text" placeholder="Ví dụ: Minh Anh">
+        <input id="name" class="my-2" type="text" placeholder="Ví dụ: David">
         <button class="btn primary my-2" id="startBtn">Bắt đầu</button>
         <div class="muted">Mỗi câu có <b>10 giây</b>. Hãy nhập tên để bắt đầu.</div>
     </div>
 
     <!-- B2: Chọn bài -->
     <div class="card hidden" id="modesCard">
-        <div class="muted my-2">Chọn dạng bài (mỗi dạng độc lập):</div>
+        <div class="muted my-2">Chọn dạng bài tập::</div>
         <button class="btn mx-2" data-mode="group">Chia nhóm động từ</button>
         <button class="btn mx-2" data-mode="potential">Thể khả năng</button>
         <button class="btn mx-2" data-mode="te">Thể て</button>
@@ -318,7 +318,11 @@
         feedback.classList.add('hidden');
 
     };
-    backToModesBtn.onclick=()=>{quizCard.classList.add('hidden');modesCard.classList.remove('hidden');};
+    backToModesBtn.onclick=()=>{
+        quizCard.classList.add('hidden');
+        modesCard.classList.remove('hidden');
+        feedback.classList.add('hidden');
+    };
 </script>
 </body>
 </html>
