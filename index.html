@@ -40,7 +40,7 @@
         <label for="name" class="my-2">Nhập tên của bạn</label>
         <input id="name" class="my-2" type="text" placeholder="Ví dụ: David">
         <button class="btn primary my-2" id="startBtn">Bắt đầu</button>
-        <div class="muted">Mỗi câu có <b>10 giây</b>. Hãy nhập tên để bắt đầu.</div>
+        <div class="muted">Mỗi câu có <b>1 phút</b>. Hãy nhập tên để bắt đầu.</div>
     </div>
 
     <!-- B2: Chọn bài -->
@@ -245,8 +245,8 @@
         timerBar.style.width='100%';
         const start=Date.now();
         state.quiz.timerId=setInterval(()=>{
-            const remain=Math.max(0,10-(Date.now()-start)/1000);
-            timerBar.style.width=(remain/10*100)+'%';
+            const remain=Math.max(0,60-(Date.now()-start)/1000);
+            timerBar.style.width=(remain/60*100)+'%';
             if(remain<=0){clearInterval(state.quiz.timerId);timeUp();}
         },50);
     }
